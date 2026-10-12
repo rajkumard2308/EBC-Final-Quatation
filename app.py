@@ -250,7 +250,7 @@ if result is not None and selection:
         discounted = final_total * (1 - float(selection["discount_pct"]) / 100.0)
         quote_lines.append(total_line)
         if extra_guest_charge:
-            quote_lines.append(f"Extra guest charges ({extra_guest_count} extra guest(s) × Rs. 3,500 × {stay_nights} night(s)): {money(extra_guest_charge)}")
+            quote_lines.append(f"Extra guest charges ({extra_guest_count} extra guests × Rs. 3,500 × {stay_nights} nights): {money(extra_guest_charge)}")
         if pet_charge:
             quote_lines.append(f"Pet ({selection['pet_plan'].lower()}, {stay_nights} night(s)): {money(pet_charge)}")
         # Show the discounted price only when a positive discount is applied.
