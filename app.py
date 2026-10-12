@@ -253,10 +253,17 @@ if result is not None and selection:
             quote_lines.append(f"Extra guest charges ({extra_guest_count} extra guest(s) × Rs. 3,500 × {stay_nights} night(s)): {money(extra_guest_charge)}")
         if pet_charge:
             quote_lines.append(f"Pet ({selection['pet_plan'].lower()}, {stay_nights} night(s)): {money(pet_charge)}")
-        if selection["include_taxes"] == "With taxes":
-            quote_lines.append(f"Total price after {selection['discount_pct']:g}% discount: {money(discounted)}")
-        else:
-            quote_lines.append(f"If you pay by cash, total price after {selection['discount_pct']:g}% discount: {money(discounted)}")
+        # Show the discounted price only when a positive discount is applied.
+        discount_pct = float(selection.get("discount_pct", 0) or 0)
+        if discount_pct > 0:
+            if selection["include_taxes"] == "With taxes":
+                quote_lines.append(
+                    f"Total price after {discount_pct:g}% discount: {money(discounted)}"
+                )
+            else:
+                quote_lines.append(
+                    f"If you pay by cash, total price after {discount_pct:g}% discount: {money(discounted)}"
+                )
         quotation = "\n".join(quote_lines)
         # Render the quotation and its copy button together so the button sits
         # in the top-right corner of the quotation card. No separate copy section.
