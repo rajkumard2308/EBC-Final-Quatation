@@ -6,7 +6,7 @@ import streamlit.components.v1 as components
 import main
 
 st.set_page_config(page_title="EBC Final Quotation", page_icon="🏨", layout="wide", initial_sidebar_state="collapsed")
-st.markdown('''<style>.block-container{max-width:1150px;padding-top:1.6rem;padding-bottom:2rem}.app-title{font-size:36px;font-weight:800;letter-spacing:-.7px;margin-bottom:2px}.app-subtitle{font-size:16px;opacity:.72;margin-bottom:24px}.quote-card{border:1px solid rgba(128,128,128,.32);border-radius:16px;padding:24px 28px;margin-top:8px;line-height:1.85}div.stButton>button{min-height:44px;border-radius:10px;font-weight:650}</style><div class="app-title">🏨 Everest Base Camp</div><div class="app-subtitle">Room rates, availability & final quotation</div>''', unsafe_allow_html=True)
+st.markdown('''<style>.block-container{max-width:1150px;padding-top:3.6rem;padding-bottom:2rem}.app-title{font-size:36px;font-weight:800;letter-spacing:-.7px;margin-bottom:2px}.app-subtitle{font-size:16px;opacity:.72;margin-bottom:24px}.quote-card{border:1px solid rgba(128,128,128,.32);border-radius:16px;padding:24px 28px;margin-top:8px;line-height:1.85}div.stButton>button{min-height:44px;border-radius:10px;font-weight:650}</style><div class="app-title">🏨 Everest Base Camp</div><div class="app-subtitle">Room rates, availability & final quotation</div>''', unsafe_allow_html=True)
 
 ROOM_OCCUPANCY = {
     "The Camper room": 2,
