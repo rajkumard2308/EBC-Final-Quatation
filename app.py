@@ -316,14 +316,17 @@ if result is not None and selection:
 
         discounted = final_total * (1 - float(selection["discount_pct"]) / 100.0)
         quote_lines.append(total_line)
-        if selection["include_taxes"] == "With taxes":
-            quote_lines.append(
-                f"Total price after {selection['discount_pct']:g}% discount: {money(discounted)}"
-            )
-        else:
-            quote_lines.append(
-                f"If you pay by cash, total price after {selection['discount_pct']:g}% discount: {money(discounted)}"
-            )
+        # Only show the discounted total when a discount is actually applied.
+        discount_pct = float(selection.get("discount_pct", 0.0))
+        if discount_pct > 0:
+            if selection["include_taxes"] == "With taxes":
+                quote_lines.append(
+                    f"Total price after {discount_pct:g}% discount: {money(discounted)}"
+                )
+            else:
+                quote_lines.append(
+                    f"If you pay by cash, total price after {discount_pct:g}% discount: {money(discounted)}"
+                )
         quotation = "\n".join(quote_lines)
         # Render the quotation and its copy button together so the button sits
         # in the top-right corner of the quotation card. No separate copy section.
