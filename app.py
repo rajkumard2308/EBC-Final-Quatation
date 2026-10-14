@@ -6,7 +6,7 @@ import streamlit.components.v1 as components
 import main
 
 st.set_page_config(page_title="EBC Final Quotation", page_icon="🏨", layout="wide", initial_sidebar_state="collapsed")
-st.markdown('''<style>.block-container{max-width:1150px;padding-top:3.2rem;padding-bottom:2rem}.app-title{font-size:36px;font-weight:800;letter-spacing:-.7px;margin-bottom:2px}.app-subtitle{font-size:16px;opacity:.72;margin-bottom:24px}.quote-card{border:1px solid rgba(128,128,128,.32);border-radius:16px;padding:24px 28px;margin-top:8px;line-height:1.85}div.stButton>button{min-height:44px;border-radius:10px;font-weight:650}</style><div class="app-title">🏨 Everest Base Camp</div><div class="app-subtitle">Room rates, availability & final quotation</div>''', unsafe_allow_html=True)
+st.markdown('''<style>.block-container{max-width:1150px;padding-top:1.6rem;padding-bottom:2rem}.app-title{font-size:36px;font-weight:800;letter-spacing:-.7px;margin-bottom:2px}.app-subtitle{font-size:16px;opacity:.72;margin-bottom:24px}.quote-card{border:1px solid rgba(128,128,128,.32);border-radius:16px;padding:24px 28px;margin-top:8px;line-height:1.85}div.stButton>button{min-height:44px;border-radius:10px;font-weight:650}</style><div class="app-title">🏨 Everest Base Camp</div><div class="app-subtitle">Room rates, availability & final quotation</div>''', unsafe_allow_html=True)
 
 ROOM_OCCUPANCY = {
     "The Camper room": 2,
@@ -120,6 +120,25 @@ if pet_included:
     pet_plan = st.radio("Pet option", ["With food", "Without food"], horizontal=True)
     st.caption("Pet charge: Rs. 3,500/night with food or Rs. 2,500/night without food.")
 
+meal_plan = st.radio(
+    "Meal plan",
+    ["Continental Plan", "Modified American Plan", "American Plan"],
+    horizontal=True,
+    help=(
+        "Continental Plan includes breakfast. Modified American Plan includes "
+        "breakfast plus lunch or dinner. American Plan includes breakfast, lunch, dinner and hi-tea."
+    ),
+)
+MEAL_PLAN_CHARGES = {
+    "Continental Plan": 0.0,
+    "Modified American Plan": 1500.0,
+    "American Plan": 3500.0,
+}
+if meal_plan == "Modified American Plan":
+    st.caption("Modified American Plan: breakfast + lunch or dinner — extra Rs. 1,500 per room/night.")
+elif meal_plan == "American Plan":
+    st.caption("American Plan: breakfast + lunch + dinner + hi-tea — extra Rs. 3,500 per room/night.")
+
 nights = (check_out - check_in).days
 st.caption(f"No. of Nights: {nights}" if nights > 0 else "Checkout date must be after check-in date.")
 
@@ -172,6 +191,7 @@ if st.button("🔍 Fetch Rates & Prepare Final Quotation", type="primary", use_c
                 "tax_pct": float(tax_pct),
                 "pet_included": bool(pet_included),
                 "pet_plan": pet_plan,
+                "meal_plan": meal_plan,
             }
     except Exception as exc:
         st.error("Unable to fetch live room rates.")
@@ -233,37 +253,77 @@ if result is not None and selection:
         st.warning("Select room type(s) and fetch live rates to generate a quotation.")
     else:
         for name, count, rate, line_subtotal, api_rate in room_breakdown:
-            quote_lines.append(f"Room Type: {name} ({count} rooms) — {money(rate)} per room/night")
-        quote_lines.extend(["Check-in Time: 2:00 PM", "Checkout Time: 10:30 AM", "Meal plan: Continental Plan"])
+            room_label = "room" if count == 1 else "rooms"
+            quote_lines.append(f"Room Type: {name} ({count} {room_label}) — {money(rate)} per room/night")
+        selected_meal_plan = selection.get("meal_plan", "Continental Plan")
+        meal_contents = {
+            "Continental Plan": "Breakfast",
+            "Modified American Plan": "Breakfast, Lunch or Dinner",
+            "American Plan": "Breakfast, Lunch, Dinner, Hi-Tea",
+        }.get(selected_meal_plan, "Breakfast")
+        quote_lines.extend([
+            "Check-in Time: 2:00 PM",
+            "Checkout Time: 10:30 AM",
+            f"Meal plan: {selected_meal_plan}",
+        ])
+
         extra_guest_count = max(0, int(selection["occupants"]) - total_standard_capacity)
+        guest_label = "guest" if extra_guest_count == 1 else "guests"
+        room_label_total = "room" if total_rooms == 1 else "rooms"
+        night_label = "night" if stay_nights == 1 else "nights"
         extra_guest_charge = extra_guest_count * 3500.0 * stay_nights
-        pet_charge = ((3500.0 if selection.get("pet_plan") == "With food" else 2500.0) * stay_nights) if selection.get("pet_included") else 0.0
-        subtotal = room_subtotal + extra_guest_charge + pet_charge
+        pet_charge = (
+            (3500.0 if selection.get("pet_plan") == "With food" else 2500.0) * stay_nights
+            if selection.get("pet_included") else 0.0
+        )
+        meal_plan_rate = {
+            "Continental Plan": 0.0,
+            "Modified American Plan": 1500.0,
+            "American Plan": 3500.0,
+            # Backward compatibility with quotations saved before the labels changed.
+            "MAP": 1500.0,
+            "AP": 3500.0,
+        }.get(selected_meal_plan, 0.0)
+        meal_plan_charge = meal_plan_rate * total_rooms * stay_nights
+
+        # Show every add-on charge before the total so the customer can understand
+        # how the quotation amount is calculated.
+        if meal_plan_charge:
+            quote_lines.append(
+                f"Meal plan charges ({money(meal_plan_rate)} per room/night × "
+                f"{total_rooms} {room_label_total} × {stay_nights} {night_label}): {money(meal_plan_charge)}"
+            )
+        if extra_guest_charge:
+            quote_lines.append(
+                f"Extra guest charges ({extra_guest_count} extra {guest_label} × "
+                f"Rs. 3,500 × {stay_nights} {night_label}): {money(extra_guest_charge)}"
+            )
+        if pet_charge:
+            quote_lines.append(
+                f"Pet charges ({selection['pet_plan'].lower()}, {stay_nights} {night_label}): {money(pet_charge)}"
+            )
+
+        subtotal = room_subtotal + extra_guest_charge + pet_charge + meal_plan_charge
         tax_amount = subtotal * float(selection.get("tax_pct", 18.0)) / 100.0
         total_with_tax = subtotal + tax_amount
+
         if selection["include_taxes"] == "With taxes":
             final_total = total_with_tax
-            total_line = f"Total (inclusive of taxes and breakfast): {money(final_total)}"
+            total_line = f"Total (inclusive of taxes and {meal_contents}): {money(final_total)}"
         else:
             final_total = subtotal
-            total_line = f"Total (breakfast included): {money(final_total)}"
+            total_line = f"Total (excluding taxes; includes {meal_contents}): {money(final_total)}"
+
         discounted = final_total * (1 - float(selection["discount_pct"]) / 100.0)
         quote_lines.append(total_line)
-        if extra_guest_charge:
-            quote_lines.append(f"Extra guest charges ({extra_guest_count} extra guests × Rs. 3,500 × {stay_nights} nights): {money(extra_guest_charge)}")
-        if pet_charge:
-            quote_lines.append(f"Pet ({selection['pet_plan'].lower()}, {stay_nights} night(s)): {money(pet_charge)}")
-        # Show the discounted price only when a positive discount is applied.
-        discount_pct = float(selection.get("discount_pct", 0) or 0)
-        if discount_pct > 0:
-            if selection["include_taxes"] == "With taxes":
-                quote_lines.append(
-                    f"Total price after {discount_pct:g}% discount: {money(discounted)}"
-                )
-            else:
-                quote_lines.append(
-                    f"If you pay by cash, total price after {discount_pct:g}% discount: {money(discounted)}"
-                )
+        if selection["include_taxes"] == "With taxes":
+            quote_lines.append(
+                f"Total price after {selection['discount_pct']:g}% discount: {money(discounted)}"
+            )
+        else:
+            quote_lines.append(
+                f"If you pay by cash, total price after {selection['discount_pct']:g}% discount: {money(discounted)}"
+            )
         quotation = "\n".join(quote_lines)
         # Render the quotation and its copy button together so the button sits
         # in the top-right corner of the quotation card. No separate copy section.
