@@ -135,9 +135,15 @@ MEAL_PLAN_CHARGES = {
     "American Plan": 3500.0,
 }
 if meal_plan == "Modified American Plan":
-    st.caption("Modified American Plan: breakfast + lunch or dinner — extra Rs. 1,500 per room/night.")
+    st.caption(
+        "Modified American Plan: breakfast + lunch or dinner — "
+        "extra Rs. 1,500 per person/night."
+    )
 elif meal_plan == "American Plan":
-    st.caption("American Plan: breakfast + lunch + dinner + hi-tea — extra Rs. 3,500 per room/night.")
+    st.caption(
+        "American Plan: breakfast + lunch + dinner + hi-tea — "
+        "extra Rs. 3,500 per person/night."
+    )
 
 nights = (check_out - check_in).days
 st.caption(f"No. of Nights: {nights}" if nights > 0 else "Checkout date must be after check-in date.")
@@ -284,14 +290,17 @@ if result is not None and selection:
             "MAP": 1500.0,
             "AP": 3500.0,
         }.get(selected_meal_plan, 0.0)
-        meal_plan_charge = meal_plan_rate * total_rooms * stay_nights
+        meal_plan_charge = meal_plan_rate * int(selection["occupants"]) * stay_nights
 
         # Show every add-on charge before the total so the customer can understand
         # how the quotation amount is calculated.
         if meal_plan_charge:
+            person_label = "person" if int(selection["occupants"]) == 1 else "persons"
+
             quote_lines.append(
-                f"Meal plan charges ({money(meal_plan_rate)} per room/night × "
-                f"{total_rooms} {room_label_total} × {stay_nights} {night_label}): {money(meal_plan_charge)}"
+                f"Meal plan charges ({money(meal_plan_rate)} per person/night × "
+                f"{int(selection['occupants'])} {person_label} × "
+                f"{stay_nights} {night_label}): {money(meal_plan_charge)}"
             )
         if extra_guest_charge:
             quote_lines.append(
@@ -312,7 +321,7 @@ if result is not None and selection:
             total_line = f"Total (inclusive of taxes and {meal_contents}): {money(final_total)}"
         else:
             final_total = subtotal
-            total_line = f"Total (excluding taxes; includes {meal_contents}): {money(final_total)}"
+            total_line = f"Total (includes {meal_contents}): {money(final_total)}"
 
         discounted = final_total * (1 - float(selection["discount_pct"]) / 100.0)
         quote_lines.append(total_line)
